@@ -1,0 +1,10 @@
+# Add Time to Reports
+# Improve Reporting
+# Adding Progress bar
+# Try/Catch For Connections
+# Read/Send Chunks of Text Instead of each line
+# Optimizing Waiting Time between Tries (increase Waiting Time after 
+    changin VPN and reduse reject time)
+# Modularize Program to smaller parts and calling them
+# Change Network Before reaching API Limit (After aroud 40 requests)
+# Encountering httpcore._exceptions.ReadTimeout: The read operation timed out
