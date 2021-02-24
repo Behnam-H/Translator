@@ -53,6 +53,7 @@ then
     # grep -rnwI -P "[^\x00-\x7F]+" -o . > $CURRENTDIR/$FOREIGN_WORDS_FILE
 
     # Find Uniq foreign sentences and words
+    # Sort Dictionary Based on Text Length
     cat $CURRENTDIR/$FOREIGN_WORDS_FILE | rev | cut -d':' -f1 | rev | sort | uniq | awk '{ print length, $0 }' | sort -n -s -r| cut -d" " -f2 > $CURRENTDIR/$UNIQ_FOREIGN_WORDS_FILE
     UNIQ_FOREIGN=(`cat $CURRENTDIR/$UNIQ_FOREIGN_WORDS_FILE`)
     
@@ -96,8 +97,6 @@ then
             echo $TRANSLATED_LINE >> $CURRENTDIR/$TRANSLATED_WORDS_FILE
         fi
     done
-
-    # Sort Dictionary Based on Text Length
 
     FILES=(`find . -type f`)
     OIFS=$IFS
