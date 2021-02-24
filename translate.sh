@@ -29,7 +29,7 @@ then
 
     for index in ${!translated[@]}
     do
-        replace "${foreign[$index]}" "${translated[$index]}" -- $TRANSLATED_FILE
+        replace "${foreign[$index]}" "${translated[$index]}" -- $TRANSLATED_FILE > /dev/null
     #    sed $FILEPATH$FILE -i 's/${foreign[$index]}/${translated[$index]}/g' $TRANSLATED_FILE
     done
 elif [ -d $1 ]
@@ -41,71 +41,79 @@ then
     UNIQ_FOREIGN_WORDS_FILE='Uniq-Foreign-Words.txt'
     TRANSLATED_WORDS_FILE='Translated-Words.txt'
     TRANSLATED_DIR="$DIRPATH-Tanslated"
-    #cp -r $DIRPATH $TRANSLATED_DIR
+    cp -r $DIRPATH $TRANSLATED_DIR
     cd $TRANSLATED_DIR
     
-    # AVAILABLE_VPNS=(`nmcli -t -f NAME,TYPE c show | grep ":vpn" | cut -d":" -f1 | sort`)
-    # VPN_COUNT=`echo "${#AVAILABLE_VPNS[@]}"`
+    AVAILABLE_VPNS=(`nmcli -t -f NAME,TYPE c show | grep ":vpn" | cut -d":" -f1 | sort`)
+    VPN_COUNT=`echo "${#AVAILABLE_VPNS[@]}"`
 
     # Grep Chinese Characters
-    # grep -rnwI -P "[\p{Han}]+" -o . > $CURRENTDIR/$FOREIGN_WORDS_FILE
+    grep -rnwI -P "[\p{Han}]+" -o . > $CURRENTDIR/$FOREIGN_WORDS_FILE
     # Or grep non-English Characters
     # grep -rnwI -P "[^\x00-\x7F]+" -o . > $CURRENTDIR/$FOREIGN_WORDS_FILE
 
     # Find Uniq foreign sentences and words
-    # cat $CURRENTDIR/$FOREIGN_WORDS_FILE | rev | cut -d':' -f1 | rev | sort | uniq > $CURRENTDIR/$UNIQ_FOREIGN_WORDS_FILE
-    # UNIQ_FOREIGN=(`cat $CURRENTDIR/$UNIQ_FOREIGN_WORDS_FILE`)
+    cat $CURRENTDIR/$FOREIGN_WORDS_FILE | rev | cut -d':' -f1 | rev | sort | uniq | awk '{ print length, $0 }' | sort -n -s -r| cut -d" " -f2 > $CURRENTDIR/$UNIQ_FOREIGN_WORDS_FILE
+    UNIQ_FOREIGN=(`cat $CURRENTDIR/$UNIQ_FOREIGN_WORDS_FILE`)
     
-    # for i in ${!UNIQ_FOREIGN[@]}
-    # do
-    #     TRANSLATED_LINE=`python $CURRENTDIR/translate.py ${UNIQ_FOREIGN[$i]}`
-    #     if [ "${UNIQ_FOREIGN[$i]}" != "$TRANSLATED_LINE" ]
-    #     then
-    #         echo $TRANSLATED_LINE >> $CURRENTDIR/$TRANSLATED_WORDS_FILE
-    #     else
-    #         echo "Refused to Translate."
-    #         # Check if there is an Active VPN, And Switch Networks
-    #         n=0
-    #         ACTIVE_VPN=`nmcli -t -f NAME,TYPE c show --active | grep ":vpn" | cut -d":" -f1`
-    #         if [ $(echo $ACTIVE_VPN | wc -c) -gt 1 ]
-    #         then
-    #             for i in ${AVAILABLE_VPNS[@]}; do
-    #                 if [ $i = $ACTIVE_VPN ]
-    #                 then
-    #                     echo "Disconnecting From VPN in Use."
-    #                     nmcli con down $ACTIVE_VPN > /dev/null
-    #                     ((n++))
-    #                     break
-    #                 fi
-    #                 ((n++))
-    #             done
-    #         fi
-    #         n=`expr $n % $VPN_COUNT`
-    #         echo "Connecting To The next VPN"
-    #         nmcli con up ${AVAILABLE_VPNS[$n]} > /dev/null
-    #         echo "Waiting For 1 minute."
-    #         sleep 1m
-    #         TRANSLATED_LINE=`python $CURRENTDIR/translate.py ${UNIQ_FOREIGN[$i]}`
+    for i in ${!UNIQ_FOREIGN[@]}
+    do
+        TRANSLATED_LINE=`python $CURRENTDIR/translate.py ${UNIQ_FOREIGN[$i]}`
+        if [ "${UNIQ_FOREIGN[$i]}" != "$TRANSLATED_LINE" ]
+        then
+            echo $TRANSLATED_LINE >> $CURRENTDIR/$TRANSLATED_WORDS_FILE
+        else
+            echo "Refused to Translate."
+            # Check if there is an Active VPN, And Switch Networks
+            n=0
+            ACTIVE_VPN=`nmcli -t -f NAME,TYPE c show --active | grep ":vpn" | cut -d":" -f1`
+            if [ $(echo $ACTIVE_VPN | wc -c) -gt 1 ]
+            then
+                for i in ${AVAILABLE_VPNS[@]}; do
+                    if [ $i = $ACTIVE_VPN ]
+                    then
+                        echo "Disconnecting From VPN in Use."
+                        nmcli con down $ACTIVE_VPN > /dev/null
+                        ((n++))
+                        break
+                    fi
+                    ((n++))
+                done
+            fi
+            n=`expr $n % $VPN_COUNT`
+            echo "Connecting To The next VPN"
+            nmcli con up ${AVAILABLE_VPNS[$n]} > /dev/null
+            echo "Waiting For 1 minute."
+            sleep 1m
+            TRANSLATED_LINE=`python $CURRENTDIR/translate.py ${UNIQ_FOREIGN[$i]}`
 
-    #         while [ "${UNIQ_FOREIGN[$i]}" = "$TRANSLATED_LINE" ]
-    #         do
-    #             echo "Does Not Translate From VPN. Waiting for 6 minutes."
-    #             sleep 6m
-    #             TRANSLATED_LINE=`python $CURRENTDIR/translate.py ${UNIQ_FOREIGN[$i]}`
-    #         done
-    #         echo $TRANSLATED_LINE >> $CURRENTDIR/$TRANSLATED_WORDS_FILE
-    #     fi
-    # done
+            while [ "${UNIQ_FOREIGN[$i]}" = "$TRANSLATED_LINE" ]
+            do
+                echo "Does Not Translate From VPN. Waiting for 6 minutes."
+                sleep 6m
+                TRANSLATED_LINE=`python $CURRENTDIR/translate.py ${UNIQ_FOREIGN[$i]}`
+            done
+            echo $TRANSLATED_LINE >> $CURRENTDIR/$TRANSLATED_WORDS_FILE
+        fi
+    done
+
+    # Sort Dictionary Based on Text Length
+
     FILES=(`find . -type f`)
+    OIFS=$IFS
+    IFS=$'\n'
     TRANSLATED=(`cat $CURRENTDIR/$TRANSLATED_WORDS_FILE`)
     UNIQ_FOREIGN=(`cat $CURRENTDIR/$UNIQ_FOREIGN_WORDS_FILE`)
+    IFS=$OIFS
 
     for index in ${!FILES[@]}
-    do
+    do        
         echo "Translating... [${FILES[$index]}]"
-        for i in ${!UNIQ_FOREIGN[@]}
-        do
+        IFS=$'\n'
+        for i in ${!TRANSLATED[@]}
+        do  
             replace "${UNIQ_FOREIGN[$i]}" "${TRANSLATED[$i]}" -- ${FILES[$index]}
         done
+        OIFS=$IFS
     done
 fi

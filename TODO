@@ -8,3 +8,5 @@
 # Modularize Program to smaller parts and calling them
 # Change Network Before reaching API Limit (After aroud 40 requests)
 # Encountering httpcore._exceptions.ReadTimeout: The read operation timed out
+# It may be a good idea to replace translated senteces in concurance with lookup
+# Syncing File and Directory Methods
