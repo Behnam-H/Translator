@@ -10,3 +10,5 @@
 # Encountering httpcore._exceptions.ReadTimeout: The read operation timed out
 # It may be a good idea to replace translated senteces in concurance with lookup
 # Syncing File and Directory Methods
+# Add a mode to translate using existing Dictionaries
+# Check existing files and show overwriting warning
